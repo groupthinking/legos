@@ -56,6 +56,7 @@ index.json
 chroma/
 .chroma/
 chromadb/
+chroma_db/
 
 # Environment variables
 .env

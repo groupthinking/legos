@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 from typing import List, Dict, Any
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -20,12 +21,12 @@ from openai import OpenAI
 # CONFIGURATION
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 INPUT_FILE = "licenses.jsonl"  # Default input file
+CHROMA_PERSIST_DIR = "./chroma_db"  # Persistent storage for ChromaDB
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")  # CORS origins
 
-app = FastAPI(
-    title="License RAG API",
-    description="Retrieval-Augmented Generation system for license analysis",
-    version="1.0.0"
-)
+# Model configuration (can be overridden via environment)
+MODEL_CHAT = os.environ.get("MODEL_CHAT", "gpt-4o")
+MODEL_AUDIT = os.environ.get("MODEL_AUDIT", "gpt-4o-mini")
 
 # Initialize OpenAI client
 client = None
@@ -34,17 +35,9 @@ if OPENAI_API_KEY:
 else:
     print("[WARN] OPENAI_API_KEY not set. Chat features will be disabled.")
 
-# CORS (Allow frontend to talk to backend)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # --- VECTOR DATABASE SETUP ---
-# We use ChromaDB to store the licenses so the LLM can search them.
-chroma_client = chromadb.Client()
+# Use PersistentClient for data persistence across server restarts
+chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
 collection = chroma_client.get_or_create_collection(name="licenses")
 
 
@@ -105,11 +98,31 @@ def ingest_licenses(input_file: str) -> int:
     return count
 
 
-# Ingest on startup
-@app.on_event("startup")
-async def startup_event():
+# Lifespan context manager for startup/shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """Initialize the vector database on startup."""
     ingest_licenses(INPUT_FILE)
+    yield
+    # Cleanup on shutdown (if needed)
+
+
+# Create FastAPI app with lifespan
+app = FastAPI(
+    title="License RAG API",
+    description="Retrieval-Augmented Generation system for license analysis",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS (Allow frontend to talk to backend)
+# For production, set ALLOWED_ORIGINS environment variable
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # --- DATA MODELS ---
@@ -213,7 +226,7 @@ Format your response as clean HTML with proper sections and bullet points.
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=MODEL_AUDIT,
             messages=[{"role": "user", "content": prompt}]
         )
         return {"analysis": response.choices[0].message.content}
@@ -251,7 +264,7 @@ Be precise, cite specific licenses when relevant, and highlight any compliance r
         user_prompt = f"Context:\n{context}\n\nQuestion: {req.message}"
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=MODEL_CHAT,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

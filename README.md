@@ -46,7 +46,28 @@ playwright install chromium
 
 # Set OpenAI API key (for RAG features)
 export OPENAI_API_KEY="sk-..."
+
+# Optional: Configure CORS for production
+export ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+
+# Optional: Use different models
+export MODEL_CHAT="gpt-4o"        # For interactive chat
+export MODEL_AUDIT="gpt-4o-mini"  # For bulk analysis
 ```
+
+### Configuration
+
+The RAG system supports the following environment variables:
+
+- `OPENAI_API_KEY` - OpenAI API key (required for LLM features)
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (default: `*`)
+- `MODEL_CHAT` - Model for interactive chat (default: `gpt-4o`)
+- `MODEL_AUDIT` - Model for risk audits (default: `gpt-4o-mini`)
+
+Data persistence:
+- ChromaDB stores vectors in `./chroma_db/` for persistence across restarts
+- Add to `.gitignore` to avoid committing large vector databases
+
 
 ### Usage
 
