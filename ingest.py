@@ -22,7 +22,6 @@ def wait_for_authentication(page: Page, url: str) -> None:
         url: Target URL to navigate to
     """
     print(f"[INFO] Navigating to: {url}")
-    initial_url = url
     page.goto(url, wait_until='domcontentloaded')
     
     # Check if authentication is required
@@ -164,16 +163,18 @@ def save_to_jsonl(data: List[Dict[str, Any]], output_path: Path) -> None:
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
+    saved_count = 0
     with open(output_path, 'w', encoding='utf-8') as f:
         for idx, item in enumerate(data):
             try:
                 json.dump(item, f, ensure_ascii=False)
                 f.write('\n')
+                saved_count += 1
             except TypeError as e:
                 print(f"[WARN] Skipping item {idx} due to serialization error: {e}")
                 continue
     
-    print(f"[SUCCESS] Saved {len(data)} items to {output_path}")
+    print(f"[SUCCESS] Saved {saved_count} items to {output_path}")
 
 
 def main():
