@@ -45,18 +45,30 @@ class BlobMapBuilder:
         
         print(f"[INFO] Loading JSONL from: {self.input_path}")
         
-        with open(self.input_path, 'r', encoding='utf-8') as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-                if not line:
-                    continue
-                
-                try:
-                    data = json.loads(line)
-                    licenses.append(data)
-                except json.JSONDecodeError as e:
-                    print(f"[WARN] Skipping invalid JSON at line {line_num}: {e}")
-                    continue
+        # Check if file exists and is readable
+        if not self.input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {self.input_path}")
+        
+        if not self.input_path.is_file():
+            raise ValueError(f"Input path is not a file: {self.input_path}")
+        
+        try:
+            with open(self.input_path, 'r', encoding='utf-8') as f:
+                for line_num, line in enumerate(f, 1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        data = json.loads(line)
+                        licenses.append(data)
+                    except json.JSONDecodeError as e:
+                        print(f"[WARN] Skipping invalid JSON at line {line_num}: {e}")
+                        continue
+        except PermissionError:
+            raise PermissionError(f"Permission denied reading file: {self.input_path}")
+        except Exception as e:
+            raise Exception(f"Error reading input file: {e}")
         
         print(f"[INFO] Loaded {len(licenses)} license entries")
         return licenses
@@ -96,9 +108,9 @@ class BlobMapBuilder:
             separator = f"\n{'='*80}\n"
             if idx > 0:
                 content = separator + content
-                current_offset += len(separator.encode('utf-8'))
             
             # Calculate byte length (UTF-8 encoding)
+            # This includes the separator if it was prepended
             content_bytes = content.encode('utf-8')
             byte_length = len(content_bytes)
             
@@ -237,7 +249,9 @@ def lookup_license(index_path: Path, blob_path: Path, license_id: int) -> str:
     with open(index_path, 'r', encoding='utf-8') as f:
         index = json.load(f)
     
-    # Find the entry
+    # Find the entry - O(n) linear search
+    # Note: For production with many licenses, consider using a dict for O(1) lookups
+    # This is acceptable for demonstration purposes with moderate license counts
     entry = None
     for e in index['entries']:
         if e['id'] == license_id:

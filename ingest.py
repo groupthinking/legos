@@ -22,6 +22,7 @@ def wait_for_authentication(page: Page, url: str) -> None:
         url: Target URL to navigate to
     """
     print(f"[INFO] Navigating to: {url}")
+    initial_url = url
     page.goto(url, wait_until='domcontentloaded')
     
     # Check if authentication is required
@@ -33,7 +34,15 @@ def wait_for_authentication(page: Page, url: str) -> None:
         print("[AUTH] Press Enter in this terminal when done...")
         print("="*60 + "\n")
         input()
-        print("[INFO] Continuing after authentication...")
+        
+        # Verify the page URL changed after authentication
+        current_url = page.url
+        if any(keyword in current_url.lower() for keyword in ['login', 'signin', 'auth']):
+            print("[WARN] Still on authentication page. Please ensure you completed login.")
+        else:
+            print("[INFO] Authentication appears successful. Continuing...")
+        
+        print(f"[INFO] Current URL: {current_url}")
 
 
 def scrape_license_list(page: Page) -> List[Dict[str, Any]]:
@@ -60,13 +69,17 @@ def scrape_license_list(page: Page) -> List[Dict[str, Any]]:
         page.wait_for_load_state('networkidle', timeout=10000)
         
         # Try multiple common patterns for OSS license pages
+        # Ordered from most specific to least specific
         selectors = [
-            'li',  # Generic list items
             '.license-item',
             '[data-license]',
             'article',
             '.library-item',
-            '.package-item'
+            '.package-item',
+            'main li',  # List items within main content (more specific)
+            'article li',  # List items within articles
+            '#content li',  # List items within content div
+            'li'  # Generic list items (last resort, may match navigation/footer)
         ]
         
         # Find which selector works
@@ -105,6 +118,9 @@ def scrape_license_list(page: Page) -> List[Dict[str, Any]]:
                 license_data = {
                     'id': idx,
                     'content': text,
+                    # Note: HTML content stored for analysis only.
+                    # WARNING: Do not render this HTML in web contexts without sanitization
+                    # as it contains untrusted content from scraped pages.
                     'html': element.inner_html(),
                 }
                 
@@ -149,9 +165,13 @@ def save_to_jsonl(data: List[Dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(output_path, 'w', encoding='utf-8') as f:
-        for item in data:
-            json.dump(item, f, ensure_ascii=False)
-            f.write('\n')
+        for idx, item in enumerate(data):
+            try:
+                json.dump(item, f, ensure_ascii=False)
+                f.write('\n')
+            except TypeError as e:
+                print(f"[WARN] Skipping item {idx} due to serialization error: {e}")
+                continue
     
     print(f"[SUCCESS] Saved {len(data)} items to {output_path}")
 
@@ -179,7 +199,7 @@ def main():
         browser = playwright_instance.chromium.launch(headless=headless)
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
         page = context.new_page()
         
