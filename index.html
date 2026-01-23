@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>License RAG System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Left Panel - License List */
+        .left-panel {
+            width: 40%;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            padding: 20px;
+            background: #1a73e8;
+            color: white;
+        }
+        
+        .panel-header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        .panel-header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        .license-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .license-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #1a73e8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .license-item:hover {
+            background: #e8f0fe;
+            transform: translateX(5px);
+        }
+        
+        .license-item h3 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 5px;
+        }
+        
+        .license-item p {
+            font-size: 13px;
+            color: #5f6368;
+            line-height: 1.4;
+        }
+        
+        /* Right Panel - AI Analyst */
+        .right-panel {
+            width: 60%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            background: #34a853;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        .audit-button {
+            background: white;
+            color: #34a853;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .audit-button:hover {
+            background: #f1f3f4;
+            transform: scale(1.05);
+        }
+        
+        .audit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            text-align: right;
+        }
+        
+        .message.assistant {
+            text-align: left;
+        }
+        
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: left;
+        }
+        
+        .message.user .message-content {
+            background: #1a73e8;
+            color: white;
+        }
+        
+        .message.assistant .message-content {
+            background: white;
+            color: #202124;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .chat-input:focus {
+            border-color: #1a73e8;
+        }
+        
+        .send-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .send-button:hover {
+            background: #1557b0;
+        }
+        
+        .send-button:disabled {
+            background: #dadce0;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: inline-block;
+            padding: 10px;
+            color: #5f6368;
+            font-style: italic;
+        }
+        
+        .error {
+            background: #fce8e6;
+            color: #c5221f;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel: License List -->
+        <div class="left-panel">
+            <div class="panel-header">
+                <h1>📋 License Inventory</h1>
+                <p>Google-style lazy-loaded license list</p>
+            </div>
+            <div class="license-list" id="licenseList">
+                <div class="loading">Loading licenses...</div>
+            </div>
+        </div>
+        
+        <!-- Right Panel: AI Analyst -->
+        <div class="right-panel">
+            <div class="chat-header">
+                <h1>🤖 AI Compliance Analyst</h1>
+                <button class="audit-button" id="auditButton" onclick="generateAudit()">
+                    Generate Risk Audit
+                </button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        <p><strong>Hello! I'm your AI Compliance Analyst.</strong></p>
+                        <p>Ask me questions like:</p>
+                        <ul>
+                            <li>"Which libraries have viral licenses?"</li>
+                            <li>"Show me all MIT licensed packages"</li>
+                            <li>"Are there any GPL dependencies?"</li>
+                            <li>"What are the compliance requirements?"</li>
+                        </ul>
+                        <p>Or click "Generate Risk Audit" for a full analysis.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="Ask about licenses..."
+                        onkeypress="handleKeyPress(event)"
+                    />
+                    <button class="send-button" id="sendButton" onclick="sendMessage()">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        // Load license list on page load
+        async function loadLicenses() {
+            try {
+                const response = await fetch(`${API_BASE}/licenses`);
+                const licenses = await response.json();
+                
+                const listContainer = document.getElementById('licenseList');
+                
+                if (licenses.length === 0) {
+                    listContainer.innerHTML = '<div class="loading">No licenses found. Please ingest license data first.</div>';
+                    return;
+                }
+                
+                listContainer.innerHTML = licenses.map(license => `
+                    <div class="license-item">
+                        <h3>${escapeHtml(license.library)}</h3>
+                        <p>${escapeHtml(license.preview)}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading licenses:', error);
+                document.getElementById('licenseList').innerHTML = 
+                    '<div class="error">Failed to load licenses. Is the server running?</div>';
+            }
+        }
+        
+        // Generate audit
+        async function generateAudit() {
+            const button = document.getElementById('auditButton');
+            button.disabled = true;
+            button.textContent = 'Analyzing...';
+            
+            addMessage('assistant', '<div class="loading">Performing comprehensive audit of all licenses...</div>');
+            
+            try {
+                const response = await fetch(`${API_BASE}/generate_ideas`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Remove loading message
+                    const messages = document.getElementById('chatMessages');
+                    const lastMessage = messages.lastElementChild;
+                    if (lastMessage && lastMessage.querySelector('.loading')) {
+                        messages.removeChild(lastMessage);
+                    }
+                    
+                    addMessage('assistant', data.analysis);
+                } else {
+                    addMessage('assistant', `<div class="error">Error: ${data.detail || 'Unknown error'}</div>`);
+                }
+            } catch (error) {
+                addMessage('assistant', `<div class="error">Failed to generate audit: ${error.message}</div>`);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate Risk Audit';
+            }
+        }
+        
+        // Send chat message
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage('user', escapeHtml(message));
+            input.value = '';
+            
+            // Disable input while processing
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            input.disabled = true;
+            
+            // Show loading
+            addMessage('assistant', '<div class="loading">Thinking...</div>');
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading message
+                const messages = document.getElementById('chatMessages');
+                const lastMessage = messages.lastElementChild;
+                if (lastMessage && lastMessage.querySelector('.loading')) {
+                    messages.removeChild(lastMessage);
+                }
+                
+                if (response.ok) {
+                    addMessage('assistant', data.reply);
+                } else {
+                    addMessage('assistant', `<div class="error">Error: ${data.detail || 'Unknown error'}</div>`);
+                }
+            } catch (error) {
+                addMessage('assistant', `<div class="error">Failed to send message: ${error.message}</div>`);
+            } finally {
+                sendButton.disabled = false;
+                input.disabled = false;
+                input.focus();
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(role, content) {
+            const messages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize
+        loadLicenses();
+    </script>
+</body>
+</html>

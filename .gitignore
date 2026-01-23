@@ -51,3 +51,12 @@ Thumbs.db
 *.jsonl
 licenses.txt
 index.json
+
+# ChromaDB
+chroma/
+.chroma/
+chromadb/
+
+# Environment variables
+.env
+.env.local
