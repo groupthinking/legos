@@ -13,26 +13,6 @@ from typing import List, Dict, Any
 from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
 
 
-def setup_browser(headless: bool = False) -> tuple[Browser, BrowserContext, Page]:
-    """
-    Initialize Playwright browser with proper configuration.
-    
-    Args:
-        headless: Whether to run browser in headless mode
-        
-    Returns:
-        Tuple of (browser, context, page)
-    """
-    playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=headless)
-    context = browser.new_context(
-        viewport={'width': 1920, 'height': 1080},
-        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    )
-    page = context.new_page()
-    return browser, context, page
-
-
 def wait_for_authentication(page: Page, url: str) -> None:
     """
     Navigate to URL and pause for manual authentication if needed.
@@ -191,9 +171,10 @@ def main():
     
     playwright_instance = None
     browser = None
+    context = None
     
     try:
-        # Setup browser
+        # Setup browser with proper configuration
         playwright_instance = sync_playwright().start()
         browser = playwright_instance.chromium.launch(headless=headless)
         context = browser.new_context(

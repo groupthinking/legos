@@ -117,11 +117,14 @@ class BlobMapBuilder:
             if 'links' in license_data:
                 index_entry['links'] = license_data['links']
             
+            # Maximum size for metadata list values (in characters)
+            MAX_METADATA_SIZE = 200
+            
             # Store any other metadata (excluding large fields)
             for key, value in license_data.items():
                 if key not in ['content', 'html'] and key not in index_entry:
                     # Only include small metadata
-                    if isinstance(value, (str, int, float, bool)) or (isinstance(value, list) and len(str(value)) < 200):
+                    if isinstance(value, (str, int, float, bool)) or (isinstance(value, list) and len(str(value)) < MAX_METADATA_SIZE):
                         index_entry[key] = value
             
             index_entries.append(index_entry)
@@ -178,8 +181,12 @@ class BlobMapBuilder:
         size_kb = size_bytes / 1024
         print(f"[SUCCESS] Index written: {size_bytes:,} bytes ({size_kb:.2f} KB)")
     
-    def build(self) -> None:
-        """Execute the complete build process."""
+    def build(self) -> bool:
+        """Execute the complete build process.
+        
+        Returns:
+            True if build succeeded, False otherwise
+        """
         try:
             # Load JSONL
             licenses = self.load_jsonl()
